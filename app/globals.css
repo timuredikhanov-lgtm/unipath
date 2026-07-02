@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #FBF8F3;
+  --surface: #FFFFFF;
+  --border: #EDE6DA;
+  --text: #2E2A33;
+  --muted: #8A8078;
+  --accent: #E8846B;
+  --accent-hover: #D97057;
+  --green: #5B8A72;
+  --tag-beige: #F3EDE3;
+  --tag-coral: #FBEDE8;
+  --tag-green: #EAF1EC;
+  --shadow-card: 0 1px 3px rgba(46, 42, 51, 0.06);
+  --radius-outer: 16px;
+  --radius-card: 14px;
+  --radius-btn: 10px;
+  --font-heading: var(--font-heading), Georgia, serif;
+  --font-body: var(--font-body), system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* пульсирующие точки «печатает» */
+@keyframes pulse-dot {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse-dot 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }

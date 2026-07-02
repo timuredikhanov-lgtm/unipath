@@ -1,0 +1,23 @@
+# зависимости
+node_modules/
+.pnp
+.pnp.js
+
+# сборка
+.next/
+out/
+
+# переменные окружения — никогда не коммитить!
+.env
+.env.local
+.env*.local
+
+# база данных
+prisma/*.db
+prisma/*.db-journal
+
+# прочее
+.DS_Store
+*.pem
+npm-debug.log*
+tsconfig.tsbuildinfo
