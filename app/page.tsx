@@ -441,94 +441,105 @@ function ChatUI({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100%",
-        maxWidth: 740,
-        margin: "0 auto",
+        height: "100vh",
         background: "var(--bg)",
       }}
     >
-      {/* шапка */}
+      {/* шапка — на всю ширину */}
       <header
         style={{
           background: "var(--surface)",
           borderBottom: "1px solid var(--border)",
-          padding: "12px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
           flexShrink: 0,
         }}
       >
-        <Logo size={20} />
-
-        {/* переключатель режимов */}
         <div
           style={{
+            maxWidth: 820,
+            margin: "0 auto",
+            padding: "12px 20px",
             display: "flex",
-            background: "var(--bg)",
-            borderRadius: "var(--radius-btn)",
-            padding: 3,
-            gap: 2,
-            border: "1px solid var(--border)",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
           }}
         >
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => switchMode(m.id)}
-              style={{
-                background: mode === m.id ? "var(--surface)" : "transparent",
-                color: mode === m.id ? "var(--accent)" : "var(--muted)",
-                border: "none",
-                borderRadius: 8,
-                padding: "5px 14px",
-                fontSize: 13,
-                fontWeight: mode === m.id ? 500 : 400,
-                fontFamily: "var(--font-body)",
-                cursor: "pointer",
-                transition: "all 0.15s",
-                boxShadow: mode === m.id ? "var(--shadow-card)" : "none",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+          <Logo size={20} />
 
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          style={{
-            fontSize: 13,
-            color: "var(--muted)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontFamily: "var(--font-body)",
-            padding: "4px 8px",
-            borderRadius: 6,
-            transition: "color 0.15s",
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted)")}
-        >
-          Выйти
-        </button>
+          {/* переключатель режимов */}
+          <div
+            style={{
+              display: "flex",
+              background: "var(--bg)",
+              borderRadius: "var(--radius-btn)",
+              padding: 3,
+              gap: 2,
+              border: "1px solid var(--border)",
+            }}
+          >
+            {MODES.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => switchMode(m.id)}
+                style={{
+                  background: mode === m.id ? "var(--surface)" : "transparent",
+                  color: mode === m.id ? "var(--accent)" : "var(--muted)",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "5px 14px",
+                  fontSize: 13,
+                  fontWeight: mode === m.id ? 500 : 400,
+                  fontFamily: "var(--font-body)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  boxShadow: mode === m.id ? "var(--shadow-card)" : "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            style={{
+              fontSize: 13,
+              color: "var(--muted)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontFamily: "var(--font-body)",
+              padding: "4px 8px",
+              borderRadius: 6,
+              transition: "color 0.15s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted)")}
+          >
+            Выйти
+          </button>
+        </div>
       </header>
 
-      {/* лента */}
+      {/* лента — скролл, контент по центру */}
       <main
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: "28px 20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 18,
         }}
       >
+        <div
+          style={{
+            maxWidth: 820,
+            margin: "0 auto",
+            padding: "28px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 18,
+          }}
+        >
         {messages.length === 0 && (
           <div
             style={{
@@ -749,17 +760,18 @@ function ChatUI({
 
         {isLoading && <TypingIndicator />}
         <div ref={bottomRef} />
+        </div>
       </main>
 
-      {/* поле ввода */}
+      {/* поле ввода — на всю ширину, форма по центру */}
       <div
         style={{
           background: "var(--surface)",
           borderTop: "1px solid var(--border)",
-          padding: "16px 20px 20px",
           flexShrink: 0,
         }}
       >
+        <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 20px 20px" }}>
         {limitReached ? (
           <div
             style={{
@@ -854,6 +866,7 @@ function ChatUI({
             </p>
           </form>
         )}
+        </div>
       </div>
     </div>
   );
