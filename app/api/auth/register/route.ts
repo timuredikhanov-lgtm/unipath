@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Email уже занят" }, { status: 409 });
   }
 
-  const hashed = await bcrypt.hash(password, 10);
+  const hashed = await bcrypt.hash(password, 8);
   await prisma.user.create({ data: { email, password: hashed } });
 
   return Response.json({ ok: true }, { status: 201 });
