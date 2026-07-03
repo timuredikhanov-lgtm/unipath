@@ -3,6 +3,8 @@ import { streamText } from "ai";
 import { prisma } from "@/lib/prisma";
 import { readFileSync } from "fs";
 import { join } from "path";
+
+export const maxDuration = 60;
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
