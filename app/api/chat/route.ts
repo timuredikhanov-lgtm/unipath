@@ -8,6 +8,7 @@ import { join } from "path";
 export const maxDuration = 60;
 
 async function tavilySearch(query: string) {
+  console.log("[web_search] запрос:", query);
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -19,11 +20,13 @@ async function tavilySearch(query: string) {
     }),
   });
   const data = await res.json();
-  return (data.results ?? []).map((r: { title: string; url: string; content: string }) => ({
+  const results = (data.results ?? []).map((r: { title: string; url: string; content: string }) => ({
     title: r.title,
     url: r.url,
     content: r.content,
   }));
+  console.log("[web_search] найдено результатов:", results.length, results.map((r: { url: string }) => r.url));
+  return results;
 }
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -116,7 +119,8 @@ export async function POST(req: Request) {
         execute: async ({ query }) => tavilySearch(query),
       }),
     },
-    onFinish: async ({ text }) => {
+    onFinish: async ({ text, steps }) => {
+      console.log("[chat] шагов агента:", steps?.length ?? 1, steps?.length > 1 ? "→ использовал инструменты" : "→ ответил из памяти");
       if (sessionId) {
         await prisma.message.create({
           data: { sessionId, role: "assistant", content: text },
