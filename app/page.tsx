@@ -287,50 +287,17 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
   );
 }
 
-// ─── Typing indicator ─────────────────────────────────────────────────────────
+// ─── Thinking indicator ───────────────────────────────────────────────────────
 
-function TypingIndicator() {
+function ThinkingIndicator() {
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-      <div
-        style={{
-          width: 30,
-          height: 30,
-          borderRadius: "50%",
-          background: "var(--tag-coral)",
-          border: "1.5px solid var(--border)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: "var(--accent)",
-            display: "block",
-          }}
-        />
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0" }}>
+      <div style={{ display: "flex", gap: 5 }}>
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#E8846B", animation: "up-dots 1.4s ease-in-out infinite", display: "inline-block" }} />
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#E8846B", animation: "up-dots 1.4s ease-in-out 0.2s infinite", display: "inline-block" }} />
+        <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#5B8A72", animation: "up-dots 1.4s ease-in-out 0.4s infinite", display: "inline-block" }} />
       </div>
-      <div
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "4px 14px 14px 14px",
-          padding: "11px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
-        <span className="typing-dot" />
-        <span className="typing-dot" />
-        <span className="typing-dot" />
-      </div>
+      <span style={{ fontSize: 14, color: "#8A8078" }}>UniPath думает…</span>
     </div>
   );
 }
@@ -758,7 +725,7 @@ function ChatUI({
           )
         )}
 
-        {isLoading && <TypingIndicator />}
+        {isLoading && <ThinkingIndicator />}
         <div ref={bottomRef} />
         </div>
       </main>
