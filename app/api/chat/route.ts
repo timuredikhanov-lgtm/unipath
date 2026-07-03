@@ -1,10 +1,30 @@
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText } from "ai";
+import { streamText, tool } from "ai";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { readFileSync } from "fs";
 import { join } from "path";
 
 export const maxDuration = 60;
+
+async function tavilySearch(query: string) {
+  const res = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: process.env.TAVILY_API_KEY,
+      query,
+      max_results: 5,
+      include_answer: false,
+    }),
+  });
+  const data = await res.json();
+  return (data.results ?? []).map((r: { title: string; url: string; content: string }) => ({
+    title: r.title,
+    url: r.url,
+    content: r.content,
+  }));
+}
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -86,6 +106,16 @@ export async function POST(req: Request) {
     model: anthropic("claude-sonnet-4-6"),
     system: systemPrompt + profileNote,
     messages: messages.slice(-MAX_HISTORY),
+    maxSteps: 5,
+    tools: {
+      web_search: tool({
+        description: "Search the web for current university information: deadlines, tuition, requirements, programs",
+        parameters: z.object({
+          query: z.string().describe("Search query in English"),
+        }),
+        execute: async ({ query }) => tavilySearch(query),
+      }),
+    },
     onFinish: async ({ text }) => {
       if (sessionId) {
         await prisma.message.create({
