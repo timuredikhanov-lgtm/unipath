@@ -9,6 +9,11 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-body", d
 export const metadata: Metadata = {
   title: "UniPath",
   description: "ИИ-консультант по поступлению в университеты США и ЕС",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+  },
 };
 
 export default function RootLayout({

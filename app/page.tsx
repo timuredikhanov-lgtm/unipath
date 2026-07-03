@@ -408,7 +408,7 @@ function ChatUI({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
+        height: "100dvh",
         background: "var(--bg)",
       }}
     >
@@ -730,15 +730,16 @@ function ChatUI({
         </div>
       </main>
 
-      {/* поле ввода — на всю ширину, форма по центру */}
+      {/* поле ввода — на всю ширину, safe-area для iPhone */}
       <div
         style={{
           background: "var(--surface)",
           borderTop: "1px solid var(--border)",
           flexShrink: 0,
+          paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 20px 20px" }}>
+        <div style={{ maxWidth: 820, margin: "0 auto", padding: "12px 16px 16px" }}>
         {limitReached ? (
           <div
             style={{
@@ -783,13 +784,14 @@ function ChatUI({
                 disabled={isLoading}
                 style={{
                   flex: 1,
+                  minWidth: 0,
                   background: "none",
                   border: "none",
                   outline: "none",
                   fontSize: 15,
                   color: "var(--text)",
                   fontFamily: "var(--font-body)",
-                  padding: "8px 0",
+                  padding: "8px 8px 8px 0",
                 }}
               />
               <button
