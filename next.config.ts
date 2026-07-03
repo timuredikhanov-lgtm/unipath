@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // гарантируем что файлы промтов попадают в serverless bundle на Vercel
+  outputFileTracingIncludes: {
+    "/api/chat": ["./prompts/**/*"],
+  },
 };
 
 export default nextConfig;

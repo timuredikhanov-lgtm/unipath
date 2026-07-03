@@ -78,6 +78,7 @@ export async function POST(req: Request) {
   }
 
   const { messages, sessionId: clientSessionId, userProfile, mode } = await req.json();
+  console.log("[chat] режим:", mode, "| промт найден:", !!(prompts[mode as string]));
   const systemPrompt = prompts[mode as string] ?? prompts.advisor;
 
   // Создаём сессию если нет
