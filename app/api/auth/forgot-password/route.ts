@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`;
 
   await resend.emails.send({
-    from: "UniPath <noreply@unipath.app>",
+    from: "UniPath <onboarding@resend.dev>",
     to: user.email,
     subject: "Сброс пароля UniPath",
     html: `
