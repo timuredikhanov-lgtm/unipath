@@ -10,7 +10,7 @@ import remarkGfm from "remark-gfm";
 type Profile = { name: string; countries: string[]; level: string; year: string };
 type Mode = "advisor" | "mock_admissions" | "essay_editor";
 
-const COUNTRIES = ["США", "ЕС"];
+const COUNTRIES = ["США", "Великобритания", "ЕС"];
 const LEVELS = ["Бакалавриат", "Магистратура"];
 const YEARS = ["2025", "2026", "2027", "2028"];
 const DAILY_LIMIT = 20;
