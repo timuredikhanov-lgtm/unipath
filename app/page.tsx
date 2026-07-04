@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { declineName } from "@/lib/declineName";
 
 type Profile = { name: string; countries: string[]; level: string; year: string };
 type Mode = "advisor" | "essay_editor" | "athlete_mode";
@@ -605,7 +606,7 @@ function ChatUI({
             }}
           >
             <p style={{ fontSize: 16, color: "var(--text)", marginBottom: 8, fontWeight: 500 }}>
-              {currentMode.label}
+              Привет, {profile.name}!
             </p>
             <p style={{ fontSize: 15, lineHeight: 1.6 }}>{currentMode.empty}</p>
           </div>
@@ -900,7 +901,7 @@ function ChatUI({
               padding: "8px 0",
             }}
           >
-            На сегодня всё. Возвращайся завтра — маршрут никуда не денется.{" "}
+            На сегодня всё. Возвращайся завтра — маршрут {declineName(profile.name, "genitive")} никуда не денется.{" "}
             <a
               href="mailto:support@example.com"
               style={{ color: "var(--accent)", textDecoration: "underline" }}

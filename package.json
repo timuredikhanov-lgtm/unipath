@@ -13,6 +13,7 @@
     "@prisma/client": "^6.11.1",
     "ai": "^4.3.16",
     "bcryptjs": "^3.0.3",
+    "lvovich": "^2.1.0",
     "next": "16.2.10",
     "next-auth": "^4.24.14",
     "prisma": "^6.11.1",
