@@ -16,6 +16,7 @@ const prompts: Record<string, string> = {
   advisor: readFileSync(join(process.cwd(), "prompts/advisor.md"), "utf-8"),
   mock_admissions: readFileSync(join(process.cwd(), "prompts/mock_admissions.md"), "utf-8"),
   essay_editor: readFileSync(join(process.cwd(), "prompts/essay_editor.md"), "utf-8"),
+  athlete_mode: readFileSync(join(process.cwd(), "prompts/athlete_mode.md"), "utf-8"),
 };
 
 async function tavilySearch(query: string) {
