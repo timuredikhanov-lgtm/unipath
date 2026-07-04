@@ -385,6 +385,8 @@ function ChatUI({
       onError: (error) => {
         console.error("[chat] ошибка:", error.message);
         setChatError("Не удалось получить ответ. Попробуйте ещё раз.");
+        // возвращаем счётчик — сервер не засчитал это сообщение
+        onRemaining((prev) => Math.min(prev + 1, DAILY_LIMIT));
       },
     });
 

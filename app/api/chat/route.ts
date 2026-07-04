@@ -107,11 +107,6 @@ export async function POST(req: Request) {
       });
     }
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { messagesUsed: { increment: 1 } },
-    });
-
     const profileNote = userProfile
       ? `\n\n## Профиль пользователя\n- Имя: ${userProfile.name}\n- Целевые страны: ${userProfile.countries.join(", ")}\n- Уровень программы: ${userProfile.level}\n- Планируемый год поступления: ${userProfile.year}\n\nОбращайся к пользователю по имени. Учитывай этот профиль при ответах.`
       : "";
@@ -133,10 +128,17 @@ export async function POST(req: Request) {
       onFinish: async ({ text, steps }) => {
         const stepsCount = steps?.length ?? 1;
         console.log(`[chat:${rid}] завершён | шагов: ${stepsCount} | символов: ${text.length}`);
-        if (sessionId) {
-          await prisma.message.create({
-            data: { sessionId, role: "assistant", content: text },
-          });
+        if (text.length > 0 && sessionId) {
+          // списываем сообщение только после успешного ответа
+          await Promise.all([
+            prisma.message.create({
+              data: { sessionId, role: "assistant", content: text },
+            }),
+            prisma.user.update({
+              where: { id: userId },
+              data: { messagesUsed: { increment: 1 } },
+            }),
+          ]);
         }
       },
     });
