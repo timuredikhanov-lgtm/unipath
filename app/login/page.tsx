@@ -1,17 +1,19 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "../page";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get("reset") === "success";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,7 +97,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label style={labelStyle}>Пароль</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Пароль</label>
+              <Link
+                href="/forgot-password"
+                style={{ fontSize: 13, color: "var(--muted)", textDecoration: "none", fontFamily: "var(--font-body)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--accent)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted)")}
+              >
+                Забыли пароль?
+              </Link>
+            </div>
             <input
               type="password"
               value={password}
@@ -107,6 +119,12 @@ export default function LoginPage() {
               onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
             />
           </div>
+
+          {resetSuccess && (
+            <p style={{ color: "#2D6A4F", fontSize: 14, margin: "-6px 0 0", fontFamily: "var(--font-body)" }}>
+              Пароль изменён. Войди с новым паролем.
+            </p>
+          )}
 
           {error && (
             <p style={{ color: "var(--accent)", fontSize: 14, margin: "-6px 0 0", fontFamily: "var(--font-body)" }}>
@@ -154,5 +172,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
