@@ -4,17 +4,19 @@ import { prisma } from "@/lib/prisma";
 
 const DAILY_LIMIT = 20;
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const userId = (session.user as { id: string }).id;
+  const { searchParams } = new URL(req.url);
+  const mode = searchParams.get("mode") ?? "advisor";
 
   const [dbSession, user] = await Promise.all([
     prisma.session.findFirst({
-      where: { userId },
+      where: { userId, mode },
       orderBy: { createdAt: "desc" },
       include: {
         messages: {
@@ -29,7 +31,6 @@ export async function GET() {
     }),
   ]);
 
-  // Проверяем нужно ли обнулить дневной счётчик
   let used = user?.messagesUsed ?? 0;
   if (user?.lastResetDate) {
     const today = new Date().toDateString();

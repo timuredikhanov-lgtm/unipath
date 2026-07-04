@@ -309,22 +309,49 @@ function ThinkingIndicator() {
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
+type ModeData = { sessionId: string; messages: UIMessage[] };
+
 function Chat({ profile }: { profile: Profile }) {
   const [ready, setReady] = useState(false);
-  const [sessionId, setSessionId] = useState("");
-  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [remaining, setRemaining] = useState(DAILY_LIMIT);
+  const [mode, setMode] = useState<Mode>("advisor");
+  // кеш истории: mode → { sessionId, messages }
+  const [cache, setCache] = useState<Partial<Record<Mode, ModeData>>>({});
+  const fetchingRef = useRef<Set<Mode>>(new Set());
+
+  async function fetchMode(m: Mode): Promise<void> {
+    if (fetchingRef.current.has(m)) return;
+    fetchingRef.current.add(m);
+    try {
+      const data = await fetch(`/api/history?mode=${m}`).then((r) => r.json());
+      setCache((prev) => ({
+        ...prev,
+        [m]: { sessionId: data.sessionId ?? "", messages: data.messages ?? [] },
+      }));
+      if (typeof data.remaining === "number") setRemaining(data.remaining);
+    } finally {
+      fetchingRef.current.delete(m);
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/history")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.sessionId) setSessionId(data.sessionId);
-        if (data.messages?.length) setInitialMessages(data.messages);
-        if (typeof data.remaining === "number") setRemaining(data.remaining);
-      })
-      .finally(() => setReady(true));
+    fetchMode("advisor").finally(() => setReady(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function switchMode(newMode: Mode) {
+    if (newMode === mode) return;
+    setMode(newMode);
+    // подгружаем историю для режима если её ещё нет в кеше
+    if (!cache[newMode]) fetchMode(newMode);
+  }
+
+  function updateSessionId(newId: string) {
+    setCache((prev) => ({
+      ...prev,
+      [mode]: { ...(prev[mode] ?? { messages: [] }), sessionId: newId },
+    }));
+  }
 
   if (!ready) {
     return (
@@ -345,12 +372,19 @@ function Chat({ profile }: { profile: Profile }) {
     );
   }
 
+  const current = cache[mode] ?? { sessionId: "", messages: [] };
+
   return (
+    // key={mode} перемонтирует ChatUI при смене режима — useChat получает
+    // свежие initialMessages для нужного режима
     <ChatUI
+      key={mode}
       profile={profile}
-      sessionId={sessionId}
-      onSessionId={setSessionId}
-      initialMessages={initialMessages}
+      mode={mode}
+      onModeChange={switchMode}
+      sessionId={current.sessionId}
+      onSessionId={updateSessionId}
+      initialMessages={current.messages}
       remaining={remaining}
       onRemaining={setRemaining}
     />
@@ -359,6 +393,8 @@ function Chat({ profile }: { profile: Profile }) {
 
 function ChatUI({
   profile,
+  mode,
+  onModeChange,
   sessionId,
   onSessionId,
   initialMessages,
@@ -366,13 +402,14 @@ function ChatUI({
   onRemaining,
 }: {
   profile: Profile;
+  mode: Mode;
+  onModeChange: (m: Mode) => void;
   sessionId: string;
   onSessionId: (id: string) => void;
   initialMessages: UIMessage[];
   remaining: number;
   onRemaining: React.Dispatch<React.SetStateAction<number>>;
 }) {
-  const [mode, setMode] = useState<Mode>("advisor");
   const currentMode = MODES.find((m) => m.id === mode)!;
   const [chatError, setChatError] = useState<string | null>(null);
   const lastInputRef = useRef<string>("");
@@ -439,13 +476,6 @@ function ChatUI({
     setInput(lastInputRef.current);
   }
 
-  function switchMode(newMode: Mode) {
-    if (newMode === mode) return;
-    setMode(newMode);
-    setMessages([]);
-    onSessionId("");
-  }
-
   const limitReached = remaining <= 0;
 
   return (
@@ -492,7 +522,7 @@ function ChatUI({
             {MODES.map((m) => (
               <button
                 key={m.id}
-                onClick={() => switchMode(m.id)}
+                onClick={() => onModeChange(m.id)}
                 style={{
                   background: mode === m.id ? "var(--surface)" : "transparent",
                   color: mode === m.id ? "var(--accent)" : "var(--muted)",

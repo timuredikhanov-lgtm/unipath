@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
     let sessionId = clientSessionId as string | undefined;
     if (!sessionId) {
-      const newSession = await prisma.session.create({ data: { userId } });
+      const newSession = await prisma.session.create({ data: { userId, mode: resolvedMode } });
       sessionId = newSession.id;
     }
 
