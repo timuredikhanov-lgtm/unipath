@@ -315,6 +315,7 @@ function Chat({ profile }: { profile: Profile }) {
   const [ready, setReady] = useState(false);
   const [remaining, setRemaining] = useState(DAILY_LIMIT);
   const [mode, setMode] = useState<Mode>("advisor");
+  const [isGenerating, setIsGenerating] = useState(false);
   // кеш истории: mode → { sessionId, messages }
   const [cache, setCache] = useState<Partial<Record<Mode, ModeData>>>({});
   const fetchingRef = useRef<Set<Mode>>(new Set());
@@ -340,9 +341,9 @@ function Chat({ profile }: { profile: Profile }) {
   }, []);
 
   function switchMode(newMode: Mode) {
-    if (newMode === mode) return;
+    // блокируем переключение пока идёт генерация — иначе race condition
+    if (newMode === mode || isGenerating) return;
     setMode(newMode);
-    // подгружаем историю для режима если её ещё нет в кеше
     if (!cache[newMode]) fetchMode(newMode);
   }
 
@@ -382,6 +383,8 @@ function Chat({ profile }: { profile: Profile }) {
       profile={profile}
       mode={mode}
       onModeChange={switchMode}
+      isGenerating={isGenerating}
+      onGeneratingChange={setIsGenerating}
       sessionId={current.sessionId}
       onSessionId={updateSessionId}
       initialMessages={current.messages}
@@ -395,6 +398,8 @@ function ChatUI({
   profile,
   mode,
   onModeChange,
+  isGenerating,
+  onGeneratingChange,
   sessionId,
   onSessionId,
   initialMessages,
@@ -404,6 +409,8 @@ function ChatUI({
   profile: Profile;
   mode: Mode;
   onModeChange: (m: Mode) => void;
+  isGenerating: boolean;
+  onGeneratingChange: (v: boolean) => void;
   sessionId: string;
   onSessionId: (id: string) => void;
   initialMessages: UIMessage[];
@@ -427,10 +434,14 @@ function ChatUI({
       onError: (error) => {
         console.error("[chat] ошибка:", error.message);
         setChatError("Не удалось получить ответ. Попробуйте ещё раз.");
-        // возвращаем счётчик — сервер не засчитал это сообщение
         onRemaining((prev) => Math.min(prev + 1, DAILY_LIMIT));
       },
     });
+
+  // сообщаем родителю о статусе генерации чтобы он мог блокировать переключение
+  useEffect(() => {
+    onGeneratingChange(isLoading);
+  }, [isLoading, onGeneratingChange]);
 
   const mainRef = useRef<HTMLElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -523,6 +534,8 @@ function ChatUI({
               <button
                 key={m.id}
                 onClick={() => onModeChange(m.id)}
+                disabled={isGenerating && mode !== m.id}
+                title={isGenerating && mode !== m.id ? "Подождите окончания ответа" : undefined}
                 style={{
                   background: mode === m.id ? "var(--surface)" : "transparent",
                   color: mode === m.id ? "var(--accent)" : "var(--muted)",
@@ -532,10 +545,11 @@ function ChatUI({
                   fontSize: 13,
                   fontWeight: mode === m.id ? 500 : 400,
                   fontFamily: "var(--font-body)",
-                  cursor: "pointer",
+                  cursor: isGenerating && mode !== m.id ? "not-allowed" : "pointer",
                   transition: "all 0.15s",
                   boxShadow: mode === m.id ? "var(--shadow-card)" : "none",
                   whiteSpace: "nowrap",
+                  opacity: isGenerating && mode !== m.id ? 0.45 : 1,
                 }}
               >
                 {m.label}
