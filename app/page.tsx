@@ -427,7 +427,8 @@ function ChatUI({
     if (remaining <= 0 || isLoading) return;
     lastInputRef.current = input;
     setChatError(null);
-    chatSubmit(e);
+    // передаём body в момент отправки — гарантирует актуальный mode
+    chatSubmit(e, { body: { userProfile: profile, sessionId, mode } });
     onRemaining((prev) => Math.max(0, prev - 1));
     setIsAtBottom(true);
     setTimeout(() => scrollToBottom(), 50);

@@ -94,11 +94,13 @@ export async function POST(req: Request) {
     const { messages, sessionId: clientSessionId, userProfile, mode } = await req.json();
     console.log(`[chat:${rid}] режим: ${mode} | промт: ${!!(prompts[mode as string])}`);
 
-    const basePrompt = prompts[mode as string] ?? prompts.advisor;
+    const resolvedMode = (prompts[mode as string] ? mode : "advisor") as string;
+    const basePrompt = prompts[resolvedMode];
     const isPhd = (userProfile?.level as string | undefined)?.toLowerCase().includes("phd");
-    const systemPrompt = (mode === "advisor" && isPhd)
+    const systemPrompt = (resolvedMode === "advisor" && isPhd)
       ? basePrompt + "\n\n" + prompts.phd_block
       : basePrompt;
+    console.log(`[chat:${rid}] промт: ${resolvedMode}${isPhd ? "+phd_block" : ""} | файл найден: ${resolvedMode !== mode ? `(mode "${mode}" не найден, fallback→advisor)` : "да"}`);
 
     let sessionId = clientSessionId as string | undefined;
     if (!sessionId) {
