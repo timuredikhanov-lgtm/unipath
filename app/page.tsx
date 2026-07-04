@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type Profile = { name: string; countries: string[]; level: string; year: string };
-type Mode = "advisor" | "mock_admissions" | "essay_editor" | "athlete_mode";
+type Mode = "advisor" | "essay_editor" | "athlete_mode";
 
 const COUNTRIES = ["США", "Великобритания", "ЕС"];
 const LEVELS = ["Бакалавриат", "Магистратура", "PhD / Аспирантура"];
@@ -20,11 +20,6 @@ const MODES: { id: Mode; label: string; empty: string }[] = [
     id: "advisor",
     label: "Консультант",
     empty: "С чего начнём? Расскажи, куда хочешь поступать.",
-  },
-  {
-    id: "mock_admissions",
-    label: "Симуляция",
-    empty: "Расскажи о своей заявке — вуз, программу, оценки, опыт и черновик эссе. Разберу глазами admissions officer.",
   },
   {
     id: "essay_editor",
