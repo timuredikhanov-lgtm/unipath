@@ -381,17 +381,40 @@ function ChatUI({
       },
     });
 
+  const mainRef = useRef<HTMLElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
+  // слушаем скролл — обновляем флаг «внизу»
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const el = mainRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      setIsAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 120);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // автоскролл только если пользователь внизу
+  useEffect(() => {
+    if (!isAtBottom || !mainRef.current) return;
+    mainRef.current.scrollTop = mainRef.current.scrollHeight;
+  }, [messages, isAtBottom]);
+
+  function scrollToBottom() {
+    if (!mainRef.current) return;
+    mainRef.current.scrollTo({ top: mainRef.current.scrollHeight, behavior: "smooth" });
+    setIsAtBottom(true);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (remaining <= 0 || isLoading) return;
     chatSubmit(e);
     onRemaining((prev) => Math.max(0, prev - 1));
+    setIsAtBottom(true);
+    setTimeout(() => scrollToBottom(), 50);
   }
 
   function switchMode(newMode: Mode) {
@@ -492,9 +515,11 @@ function ChatUI({
 
       {/* лента — скролл, контент по центру */}
       <main
+        ref={mainRef}
         style={{
           flex: 1,
           overflowY: "auto",
+          position: "relative",
         }}
       >
         <div
@@ -728,6 +753,34 @@ function ChatUI({
         {isLoading && <ThinkingIndicator />}
         <div ref={bottomRef} />
         </div>
+
+        {/* кнопка возврата вниз */}
+        {!isAtBottom && (
+          <button
+            onClick={scrollToBottom}
+            style={{
+              position: "sticky",
+              bottom: 16,
+              float: "right",
+              marginRight: 16,
+              background: "var(--surface)",
+              color: "var(--text)",
+              border: "1px solid var(--border)",
+              borderRadius: "20px",
+              padding: "6px 14px",
+              fontSize: 13,
+              fontFamily: "var(--font-body)",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(46,42,51,0.12)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              transition: "box-shadow 0.15s",
+            }}
+          >
+            ↓ К последнему
+          </button>
+        )}
       </main>
 
       {/* поле ввода — на всю ширину, safe-area для iPhone */}
