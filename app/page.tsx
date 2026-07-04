@@ -369,8 +369,10 @@ function ChatUI({
 }) {
   const [mode, setMode] = useState<Mode>("advisor");
   const currentMode = MODES.find((m) => m.id === mode)!;
+  const [chatError, setChatError] = useState<string | null>(null);
+  const lastInputRef = useRef<string>("");
 
-  const { messages, input, handleInputChange, handleSubmit: chatSubmit, isLoading, setMessages } =
+  const { messages, input, handleInputChange, handleSubmit: chatSubmit, isLoading, setMessages, setInput } =
     useChat({
       api: "/api/chat",
       initialMessages,
@@ -378,6 +380,11 @@ function ChatUI({
       onResponse: (response) => {
         const newSid = response.headers.get("X-Session-Id");
         if (newSid) onSessionId(newSid);
+        setChatError(null);
+      },
+      onError: (error) => {
+        console.error("[chat] ошибка:", error.message);
+        setChatError("Не удалось получить ответ. Попробуйте ещё раз.");
       },
     });
 
@@ -411,10 +418,17 @@ function ChatUI({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (remaining <= 0 || isLoading) return;
+    lastInputRef.current = input;
+    setChatError(null);
     chatSubmit(e);
     onRemaining((prev) => Math.max(0, prev - 1));
     setIsAtBottom(true);
     setTimeout(() => scrollToBottom(), 50);
+  }
+
+  function handleRetry() {
+    setChatError(null);
+    setInput(lastInputRef.current);
   }
 
   function switchMode(newMode: Mode) {
@@ -751,6 +765,42 @@ function ChatUI({
         )}
 
         {isLoading && <ThinkingIndicator />}
+
+        {chatError && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              background: "#FEF2F0",
+              border: "1px solid #F5C4BB",
+              borderRadius: 12,
+              padding: "12px 16px",
+              fontFamily: "var(--font-body)",
+              fontSize: 14,
+              color: "var(--text)",
+            }}
+          >
+            <span style={{ flex: 1 }}>⚠ {chatError}</span>
+            <button
+              onClick={handleRetry}
+              style={{
+                background: "var(--accent)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "6px 14px",
+                fontSize: 13,
+                fontFamily: "var(--font-body)",
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              Повторить
+            </button>
+          </div>
+        )}
+
         <div ref={bottomRef} />
         </div>
 

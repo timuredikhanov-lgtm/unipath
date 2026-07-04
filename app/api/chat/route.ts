@@ -2,34 +2,12 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { readFileSync } from "fs";
 import { join } from "path";
 
 export const maxDuration = 60;
-
-async function tavilySearch(query: string) {
-  console.log("[web_search] запрос:", query);
-  const res = await fetch("https://api.tavily.com/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      api_key: process.env.TAVILY_API_KEY,
-      query,
-      max_results: 5,
-      include_answer: false,
-    }),
-  });
-  const data = await res.json();
-  const results = (data.results ?? []).map((r: { title: string; url: string; content: string }) => ({
-    title: r.title,
-    url: r.url,
-    content: r.content,
-  }));
-  console.log("[web_search] найдено результатов:", results.length, results.map((r: { url: string }) => r.url));
-  return results;
-}
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 
 const MAX_HISTORY = 20;
 const DAILY_LIMIT = 20;
@@ -40,100 +18,139 @@ const prompts: Record<string, string> = {
   essay_editor: readFileSync(join(process.cwd(), "prompts/essay_editor.md"), "utf-8"),
 };
 
+async function tavilySearch(query: string) {
+  console.log("[web_search] запрос:", query);
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: process.env.TAVILY_API_KEY,
+        query,
+        max_results: 5,
+        include_answer: false,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      console.error("[web_search] HTTP ошибка:", res.status);
+      return [];
+    }
+    const data = await res.json();
+    const results = (data.results ?? []).map((r: { title: string; url: string; content: string }) => ({
+      title: r.title,
+      url: r.url,
+      content: r.content,
+    }));
+    console.log("[web_search] найдено:", results.length, results.map((r: { url: string }) => r.url));
+    return results;
+  } catch (err) {
+    console.error("[web_search] ошибка:", err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const rid = Math.random().toString(36).slice(2, 7);
+  console.log(`[chat:${rid}] запрос получен`);
 
-  const userId = (session.user as { id: string }).id;
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  // Проверяем дневной лимит
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { messagesUsed: true, lastResetDate: true },
-  });
+    const userId = (session.user as { id: string }).id;
 
-  if (!user) {
-    return Response.json({ error: "User not found" }, { status: 404 });
-  }
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { messagesUsed: true, lastResetDate: true },
+    });
 
-  const today = new Date();
-  const needsReset = new Date(user.lastResetDate).toDateString() !== today.toDateString();
-  const used = needsReset ? 0 : user.messagesUsed;
+    if (!user) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
 
-  if (used >= DAILY_LIMIT) {
-    return Response.json(
-      { error: "Дневной лимит исчерпан. Приходите завтра или напишите нам для расширенного доступа." },
-      { status: 429 }
-    );
-  }
+    const today = new Date();
+    const needsReset = new Date(user.lastResetDate).toDateString() !== today.toDateString();
+    const used = needsReset ? 0 : user.messagesUsed;
 
-  // Сбрасываем счётчик при новом дне
-  if (needsReset) {
+    if (used >= DAILY_LIMIT) {
+      return Response.json(
+        { error: "Дневной лимит исчерпан. Приходите завтра или напишите нам для расширенного доступа." },
+        { status: 429 }
+      );
+    }
+
+    if (needsReset) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { messagesUsed: 0, lastResetDate: today },
+      });
+    }
+
+    const { messages, sessionId: clientSessionId, userProfile, mode } = await req.json();
+    console.log(`[chat:${rid}] режим: ${mode} | промт: ${!!(prompts[mode as string])}`);
+
+    const systemPrompt = prompts[mode as string] ?? prompts.advisor;
+
+    let sessionId = clientSessionId as string | undefined;
+    if (!sessionId) {
+      const newSession = await prisma.session.create({ data: { userId } });
+      sessionId = newSession.id;
+    }
+
+    const lastUserMessage = messages[messages.length - 1];
+    if (lastUserMessage?.role === "user") {
+      await prisma.message.create({
+        data: { sessionId, role: "user", content: lastUserMessage.content },
+      });
+    }
+
     await prisma.user.update({
       where: { id: userId },
-      data: { messagesUsed: 0, lastResetDate: today },
+      data: { messagesUsed: { increment: 1 } },
     });
-  }
 
-  const { messages, sessionId: clientSessionId, userProfile, mode } = await req.json();
-  console.log("[chat] режим:", mode, "| промт найден:", !!(prompts[mode as string]));
-  const systemPrompt = prompts[mode as string] ?? prompts.advisor;
+    const profileNote = userProfile
+      ? `\n\n## Профиль пользователя\n- Имя: ${userProfile.name}\n- Целевые страны: ${userProfile.countries.join(", ")}\n- Уровень программы: ${userProfile.level}\n- Планируемый год поступления: ${userProfile.year}\n\nОбращайся к пользователю по имени. Учитывай этот профиль при ответах.`
+      : "";
 
-  // Создаём сессию если нет
-  let sessionId = clientSessionId as string | undefined;
-  if (!sessionId) {
-    const newSession = await prisma.session.create({ data: { userId } });
-    sessionId = newSession.id;
-  }
-
-  // Сохраняем сообщение пользователя
-  const lastUserMessage = messages[messages.length - 1];
-  if (lastUserMessage?.role === "user") {
-    await prisma.message.create({
-      data: { sessionId, role: "user", content: lastUserMessage.content },
-    });
-  }
-
-  // Увеличиваем счётчик
-  await prisma.user.update({
-    where: { id: userId },
-    data: { messagesUsed: { increment: 1 } },
-  });
-
-  const profileNote = userProfile
-    ? `\n\n## Профиль пользователя\n- Имя: ${userProfile.name}\n- Целевые страны: ${userProfile.countries.join(", ")}\n- Уровень программы: ${userProfile.level}\n- Планируемый год поступления: ${userProfile.year}\n\nОбращайся к пользователю по имени. Учитывай этот профиль при ответах.`
-    : "";
-
-  const result = streamText({
-    model: anthropic("claude-sonnet-4-6"),
-    system: systemPrompt + profileNote,
-    messages: messages.slice(-MAX_HISTORY),
-    maxSteps: 5,
-    tools: {
-      web_search: tool({
-        description: "Search the web for current university information: deadlines, tuition, requirements, programs",
-        parameters: z.object({
-          query: z.string().describe("Search query in English"),
+    const result = streamText({
+      model: anthropic("claude-sonnet-4-6"),
+      system: systemPrompt + profileNote,
+      messages: messages.slice(-MAX_HISTORY),
+      maxSteps: 5,
+      tools: {
+        web_search: tool({
+          description: "Search the web for current university information: deadlines, tuition, requirements, programs",
+          parameters: z.object({
+            query: z.string().describe("Search query in English"),
+          }),
+          execute: async ({ query }) => tavilySearch(query),
         }),
-        execute: async ({ query }) => tavilySearch(query),
-      }),
-    },
-    onFinish: async ({ text, steps }) => {
-      console.log("[chat] шагов агента:", steps?.length ?? 1, steps?.length > 1 ? "→ использовал инструменты" : "→ ответил из памяти");
-      if (sessionId) {
-        await prisma.message.create({
-          data: { sessionId, role: "assistant", content: text },
-        });
-      }
-    },
-  });
+      },
+      onFinish: async ({ text, steps }) => {
+        const stepsCount = steps?.length ?? 1;
+        console.log(`[chat:${rid}] завершён | шагов: ${stepsCount} | символов: ${text.length}`);
+        if (sessionId) {
+          await prisma.message.create({
+            data: { sessionId, role: "assistant", content: text },
+          });
+        }
+      },
+    });
 
-  // Возвращаем sessionId в заголовке — клиент сохранит его для следующих запросов
-  const response = result.toDataStreamResponse();
-  const headers = new Headers(response.headers);
-  headers.set("X-Session-Id", sessionId);
+    const response = result.toDataStreamResponse();
+    const headers = new Headers(response.headers);
+    headers.set("X-Session-Id", sessionId);
 
-  return new Response(response.body, { status: response.status, headers });
+    console.log(`[chat:${rid}] стрим запущен`);
+    return new Response(response.body, { status: response.status, headers });
+
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[chat:${rid}] критическая ошибка:`, msg);
+    return Response.json({ error: "Произошла ошибка на сервере. Попробуйте ещё раз." }, { status: 500 });
+  }
 }
