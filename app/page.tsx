@@ -11,7 +11,7 @@ type Profile = { name: string; countries: string[]; level: string; year: string 
 type Mode = "advisor" | "mock_admissions" | "essay_editor" | "athlete_mode";
 
 const COUNTRIES = ["США", "Великобритания", "ЕС"];
-const LEVELS = ["Бакалавриат", "Магистратура"];
+const LEVELS = ["Бакалавриат", "Магистратура", "PhD / Аспирантура"];
 const YEARS = Array.from({ length: 3 }, (_, i) => String(new Date().getFullYear() + i));
 const DAILY_LIMIT = 20;
 

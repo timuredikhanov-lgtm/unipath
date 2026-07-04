@@ -17,6 +17,7 @@ const prompts: Record<string, string> = {
   mock_admissions: readFileSync(join(process.cwd(), "prompts/mock_admissions.md"), "utf-8"),
   essay_editor: readFileSync(join(process.cwd(), "prompts/essay_editor.md"), "utf-8"),
   athlete_mode: readFileSync(join(process.cwd(), "prompts/athlete_mode.md"), "utf-8"),
+  phd_block: readFileSync(join(process.cwd(), "prompts/phd_mode.md"), "utf-8"),
 };
 
 async function tavilySearch(query: string) {
@@ -93,7 +94,11 @@ export async function POST(req: Request) {
     const { messages, sessionId: clientSessionId, userProfile, mode } = await req.json();
     console.log(`[chat:${rid}] режим: ${mode} | промт: ${!!(prompts[mode as string])}`);
 
-    const systemPrompt = prompts[mode as string] ?? prompts.advisor;
+    const basePrompt = prompts[mode as string] ?? prompts.advisor;
+    const isPhd = (userProfile?.level as string | undefined)?.toLowerCase().includes("phd");
+    const systemPrompt = (mode === "advisor" && isPhd)
+      ? basePrompt + "\n\n" + prompts.phd_block
+      : basePrompt;
 
     let sessionId = clientSessionId as string | undefined;
     if (!sessionId) {
