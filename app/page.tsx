@@ -12,7 +12,7 @@ type Mode = "advisor" | "mock_admissions" | "essay_editor" | "athlete_mode";
 
 const COUNTRIES = ["США", "Великобритания", "ЕС"];
 const LEVELS = ["Бакалавриат", "Магистратура"];
-const YEARS = ["2026", "2027", "2028"];
+const YEARS = Array.from({ length: 3 }, (_, i) => String(new Date().getFullYear() + i));
 const DAILY_LIMIT = 20;
 
 const MODES: { id: Mode; label: string; empty: string }[] = [
