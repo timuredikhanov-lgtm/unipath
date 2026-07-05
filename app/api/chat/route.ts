@@ -127,13 +127,13 @@ export async function POST(req: Request) {
       ? `\n\n## Профиль пользователя\n- Имя: ${userProfile.name}\n- Целевые страны: ${userProfile.countries.join(", ")}\n- Уровень программы: ${userProfile.level}\n- Планируемый год поступления: ${userProfile.year}\n\nОбращайся к пользователю по имени, склоняя его по падежам как в живой русской речи (именительный — «Тимур, смотри», родительный — «у Тимура», дательный — «советую Тимуру»). Если имя необычное и ты не уверен в форме — используй именительный падеж в обращении, не выдумывай неправильную форму. Учитывай этот профиль при ответах.`
       : "";
 
-    console.log(`[chat:${rid}] вызов OpenRouter | модель: deepseek/deepseek-chat | ключ: ${process.env.OPENROUTER_API_KEY ? "есть" : "ОТСУТСТВУЕТ"}`);
+    console.log(`[chat:${rid}] вызов OpenRouter | модель: deepseek/deepseek-chat | ключ OR: ${process.env.OPENROUTER_API_KEY ? "есть" : "ОТСУТСТВУЕТ"} | ключ Tavily: ${process.env.TAVILY_API_KEY ? "есть" : "ОТСУТСТВУЕТ"}`);
 
     const result = streamText({
       model: openrouter("deepseek/deepseek-chat"),
       system: systemPrompt + profileNote,
       messages: messages.slice(-MAX_HISTORY),
-      // maxSteps убран — deepseek/deepseek-chat не поддерживает многошаговый tool use через OpenRouter
+      maxSteps: 3,
       tools: {
         web_search: tool({
           description: "Search the web for current university information: deadlines, tuition, requirements, programs",
