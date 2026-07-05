@@ -1,9 +1,4 @@
 import { createOpenAI } from "@ai-sdk/openai";
-
-const openrouter = createOpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
 import { streamText, tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +6,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { readFileSync } from "fs";
 import { join } from "path";
+
+const openrouter = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+  headers: {
+    "HTTP-Referer": process.env.NEXTAUTH_URL ?? "https://unipath.app",
+    "X-Title": "UniPath",
+  },
+});
 
 export const maxDuration = 60;
 
