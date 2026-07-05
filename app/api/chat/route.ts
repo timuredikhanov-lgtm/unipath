@@ -1,4 +1,9 @@
-import { deepseek } from "@ai-sdk/deepseek";
+import { createOpenAI } from "@ai-sdk/openai";
+
+const openrouter = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 import { streamText, tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -119,7 +124,7 @@ export async function POST(req: Request) {
       : "";
 
     const result = streamText({
-      model: deepseek("deepseek-v4-flash"),
+      model: openrouter("deepseek/deepseek-chat"),
       system: systemPrompt + profileNote,
       messages: messages.slice(-MAX_HISTORY),
       maxSteps: 5,
