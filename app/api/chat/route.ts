@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { deepseek } from "@ai-sdk/deepseek";
 import { streamText, tool } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
       : "";
 
     const result = streamText({
-      model: anthropic("claude-sonnet-4-6"),
+      model: deepseek("deepseek-v4-flash"),
       system: systemPrompt + profileNote,
       messages: messages.slice(-MAX_HISTORY),
       maxSteps: 5,
