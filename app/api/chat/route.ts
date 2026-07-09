@@ -128,25 +128,40 @@ export async function POST(req: Request) {
       ? `\n\n## Профиль пользователя\n- Имя: ${userProfile.name}\n- Целевые страны: ${userProfile.countries.join(", ")}\n- Уровень программы: ${userProfile.level}\n- Планируемый год поступления: ${userProfile.year}\n\nОбращайся к пользователю по имени, склоняя его по падежам как в живой русской речи (именительный — «Тимур, смотри», родительный — «у Тимура», дательный — «советую Тимуру»). Если имя необычное и ты не уверен в форме — используй именительный падеж в обращении, не выдумывай неправильную форму. Учитывай этот профиль при ответах.`
       : "";
 
-    console.log(`[chat:${rid}] вызов OpenRouter | модель: deepseek/deepseek-chat | ключ OR: ${process.env.OPENROUTER_API_KEY ? "есть" : "ОТСУТСТВУЕТ"} | ключ Tavily: ${process.env.TAVILY_API_KEY ? "есть" : "ОТСУТСТВУЕТ"}`);
+    // visa_mode требует надёжного function calling — deepseek его не делает автономно
+    const MODE_MODEL: Record<string, string> = {
+      visa_mode: "openai/gpt-4o-mini",
+    };
+    const modelId = MODE_MODEL[resolvedMode] ?? "deepseek/deepseek-chat";
+
+    console.log(`[chat:${rid}] вызов OpenRouter | модель: ${modelId} | ключ OR: ${process.env.OPENROUTER_API_KEY ? "есть" : "ОТСУТСТВУЕТ"} | ключ Tavily: ${process.env.TAVILY_API_KEY ? "есть" : "ОТСУТСТВУЕТ"}`);
 
     const result = streamText({
-      model: openrouter("deepseek/deepseek-chat"),
+      model: openrouter(modelId),
       system: systemPrompt + profileNote,
       messages: messages.slice(-MAX_HISTORY),
       maxSteps: 3,
       tools: {
         web_search: tool({
-          description: "Search the web for current university information: deadlines, tuition, requirements, programs",
+          description: "Search the web for current, up-to-date information: university deadlines, tuition fees, admission requirements, visa requirements, blocked account amounts (Sperrkonto), visa processing times, embassy requirements, financial thresholds",
           parameters: z.object({
             query: z.string().describe("Search query in English"),
           }),
           execute: async ({ query }) => tavilySearch(query),
         }),
       },
+      onStepFinish: ({ stepType, toolCalls, toolResults }) => {
+        if (toolCalls && toolCalls.length > 0) {
+          console.log(`[chat:${rid}] tool вызван:`, toolCalls.map(tc => `${tc.toolName}(${JSON.stringify((tc as { args?: unknown }).args ?? {})})`).join(", "));
+        }
+        if (stepType === "tool-result" && toolResults) {
+          console.log(`[chat:${rid}] tool результат получен | результатов: ${toolResults.length}`);
+        }
+      },
       onFinish: async ({ text, steps }) => {
         const stepsCount = steps?.length ?? 1;
-        console.log(`[chat:${rid}] завершён | шагов: ${stepsCount} | символов: ${text.length}`);
+        const toolCallsTotal = steps?.flatMap(s => s.toolCalls ?? []).length ?? 0;
+        console.log(`[chat:${rid}] завершён | шагов: ${stepsCount} | tool calls: ${toolCallsTotal} | символов: ${text.length}`);
         if (text.length > 0 && sessionId) {
           await Promise.all([
             prisma.message.create({
