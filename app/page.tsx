@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 import { declineName } from "@/lib/declineName";
 
 type Profile = { name: string; countries: string[]; level: string; year: string };
-type Mode = "advisor" | "essay_editor" | "athlete_mode";
+type Mode = "advisor" | "essay_editor" | "athlete_mode" | "visa_mode";
 
 const COUNTRIES = ["США", "Великобритания", "ЕС"];
 const LEVELS = ["Бакалавриат", "Магистратура", "PhD / Аспирантура"];
@@ -32,6 +32,11 @@ const MODES: { id: Mode; label: string; empty: string }[] = [
     label: "Спорт",
     empty: "Расскажи про свой вид спорта, уровень, результаты и куда хочешь поступить. Разберём рекрутинг и варианты.",
   },
+  {
+    id: "visa_mode",
+    label: "Виза",
+    empty: "Расскажи, в какую страну едешь учиться и на каком этапе сейчас — помогу разобраться с визой по шагам.",
+  },
 ];
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
@@ -42,29 +47,20 @@ export function Logo({ size = 22 }: { size?: number }) {
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-      {/* мини-иконка пути */}
       <svg
         width={lineW + dotR * 4}
         height={dotR * 2 + 2}
         viewBox={`0 0 ${lineW + dotR * 4} ${dotR * 2 + 2}`}
         style={{ flexShrink: 0 }}
       >
-        {/* стартовая точка — коралл */}
         <circle cx={dotR + 1} cy={dotR + 1} r={dotR} fill="var(--accent)" />
-        {/* линия */}
         <line
-          x1={dotR * 2 + 3}
-          y1={dotR + 1}
-          x2={lineW + dotR}
-          y2={dotR + 1}
-          stroke="var(--border)"
-          strokeWidth={1.5}
+          x1={dotR * 2 + 3} y1={dotR + 1}
+          x2={lineW + dotR} y2={dotR + 1}
+          stroke="var(--border)" strokeWidth={1.5}
         />
-        {/* конечная точка — зелёная */}
         <circle cx={lineW + dotR * 3 + 1} cy={dotR + 1} r={dotR} fill="var(--green)" />
       </svg>
-
-      {/* слово */}
       <span
         style={{
           fontFamily: "var(--font-heading)",
@@ -174,7 +170,6 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
         padding: "48px 16px",
       }}
     >
-      {/* hero */}
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <Logo size={24} />
         <h1
@@ -196,7 +191,6 @@ function Onboarding({ onDone }: { onDone: (p: Profile) => void }) {
         </p>
       </div>
 
-      {/* карточка */}
       <div
         style={{
           background: "var(--surface)",
@@ -303,6 +297,249 @@ function ThinkingIndicator() {
   );
 }
 
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+function Sidebar({
+  profile,
+  mode,
+  onModeChange,
+  isGenerating,
+  isMobile,
+  open,
+  onClose,
+}: {
+  profile: Profile;
+  mode: Mode;
+  onModeChange: (m: Mode) => void;
+  isGenerating: boolean;
+  isMobile: boolean;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const modeIcons: Record<Mode, string> = {
+    advisor: "🎓",
+    essay_editor: "✍️",
+    athlete_mode: "⚡",
+    visa_mode: "🛂",
+  };
+
+  const sidebarStyle: React.CSSProperties = isMobile
+    ? {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        bottom: 0,
+        width: 260,
+        zIndex: 100,
+        transform: open ? "translateX(0)" : "translateX(-100%)",
+        transition: "transform 0.24s cubic-bezier(0.4,0,0.2,1)",
+      }
+    : {
+        width: 220,
+        flexShrink: 0,
+        position: "relative",
+      };
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {isMobile && open && (
+        <div
+          onClick={onClose}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(46,42,51,0.38)",
+            zIndex: 99,
+          }}
+        />
+      )}
+
+      <aside
+        style={{
+          ...sidebarStyle,
+          display: "flex",
+          flexDirection: "column",
+          background: "var(--surface)",
+          borderRight: "1px solid var(--border)",
+          overflowY: "auto",
+        }}
+      >
+        {/* Логотип */}
+        <div
+          style={{
+            padding: "18px 18px 16px",
+            borderBottom: "1px solid var(--border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Logo size={18} />
+          {isMobile && (
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--muted)",
+                fontSize: 20,
+                lineHeight: 1,
+                padding: "0 4px",
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Список режимов */}
+        <nav style={{ flex: 1, padding: "10px 10px 0" }}>
+          <p
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.07em",
+              textTransform: "uppercase",
+              color: "var(--muted)",
+              padding: "8px 10px 6px",
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            Режим
+          </p>
+          {MODES.map((m) => {
+            const isActive = mode === m.id;
+            const disabled = isGenerating && !isActive;
+            return (
+              <button
+                key={m.id}
+                onClick={() => {
+                  onModeChange(m.id);
+                  if (isMobile) onClose();
+                }}
+                disabled={disabled}
+                title={disabled ? "Подождите окончания ответа" : undefined}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  width: "100%",
+                  textAlign: "left",
+                  padding: "9px 10px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: isActive ? "var(--tag-coral)" : "transparent",
+                  color: isActive ? "var(--accent)" : "var(--muted)",
+                  fontWeight: isActive ? 500 : 400,
+                  fontSize: 14,
+                  fontFamily: "var(--font-body)",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  opacity: disabled ? 0.45 : 1,
+                  transition: "background 0.13s, color 0.13s",
+                  marginBottom: 2,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive && !disabled)
+                    e.currentTarget.style.background = "var(--bg)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive)
+                    e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>
+                  {modeIcons[m.id]}
+                </span>
+                <span>{m.label}</span>
+                {isActive && (
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: "var(--accent)",
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Профиль + выход */}
+        <div
+          style={{
+            padding: "14px 18px",
+            borderTop: "1px solid var(--border)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--text)",
+                fontFamily: "var(--font-body)",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {profile.name}
+            </p>
+            <p
+              style={{
+                fontSize: 11,
+                color: "var(--muted)",
+                fontFamily: "var(--font-body)",
+                marginTop: 1,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {profile.level}
+            </p>
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            style={{
+              fontSize: 12,
+              color: "var(--muted)",
+              background: "none",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              cursor: "pointer",
+              fontFamily: "var(--font-body)",
+              padding: "5px 10px",
+              transition: "color 0.15s, border-color 0.15s",
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--text)";
+              e.currentTarget.style.borderColor = "var(--muted)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--muted)";
+              e.currentTarget.style.borderColor = "var(--border)";
+            }}
+          >
+            Выйти
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
 type ModeData = { sessionId: string; messages: UIMessage[] };
@@ -315,6 +552,17 @@ function Chat({ profile }: { profile: Profile }) {
   // кеш истории: mode → { sessionId, messages }
   const [cache, setCache] = useState<Partial<Record<Mode, ModeData>>>({});
   const fetchingRef = useRef<Set<Mode>>(new Set());
+
+  // мобильный сайдбар
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   async function fetchMode(m: Mode): Promise<void> {
     if (fetchingRef.current.has(m)) return;
@@ -354,7 +602,7 @@ function Chat({ profile }: { profile: Profile }) {
     return (
       <div
         style={{
-          height: "100%",
+          height: "100dvh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -372,28 +620,46 @@ function Chat({ profile }: { profile: Profile }) {
   const current = cache[mode] ?? { sessionId: "", messages: [] };
 
   return (
-    // key={mode} перемонтирует ChatUI при смене режима — useChat получает
-    // свежие initialMessages для нужного режима
-    <ChatUI
-      key={mode}
-      profile={profile}
-      mode={mode}
-      onModeChange={switchMode}
-      isGenerating={isGenerating}
-      onGeneratingChange={setIsGenerating}
-      sessionId={current.sessionId}
-      onSessionId={updateSessionId}
-      initialMessages={current.messages}
-      remaining={remaining}
-      onRemaining={setRemaining}
-    />
+    <div style={{ display: "flex", height: "100dvh", overflow: "hidden" }}>
+      {/* Сайдбар — снаружи ChatUI, не ремонтируется при смене режима */}
+      <Sidebar
+        profile={profile}
+        mode={mode}
+        onModeChange={switchMode}
+        isGenerating={isGenerating}
+        isMobile={isMobile}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Область чата */}
+      <div style={{ flex: 1, overflow: "hidden", minWidth: 0 }}>
+        {/* key={mode} перемонтирует ChatUI при смене режима — useChat получает
+            свежие initialMessages для нужного режима */}
+        <ChatUI
+          key={mode}
+          profile={profile}
+          mode={mode}
+          isGenerating={isGenerating}
+          onGeneratingChange={setIsGenerating}
+          sessionId={current.sessionId}
+          onSessionId={updateSessionId}
+          initialMessages={current.messages}
+          remaining={remaining}
+          onRemaining={setRemaining}
+          isMobile={isMobile}
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
+      </div>
+    </div>
   );
 }
+
+// ─── ChatUI ───────────────────────────────────────────────────────────────────
 
 function ChatUI({
   profile,
   mode,
-  onModeChange,
   isGenerating,
   onGeneratingChange,
   sessionId,
@@ -401,10 +667,11 @@ function ChatUI({
   initialMessages,
   remaining,
   onRemaining,
+  isMobile,
+  onOpenSidebar,
 }: {
   profile: Profile;
   mode: Mode;
-  onModeChange: (m: Mode) => void;
   isGenerating: boolean;
   onGeneratingChange: (v: boolean) => void;
   sessionId: string;
@@ -412,12 +679,14 @@ function ChatUI({
   initialMessages: UIMessage[];
   remaining: number;
   onRemaining: React.Dispatch<React.SetStateAction<number>>;
+  isMobile: boolean;
+  onOpenSidebar: () => void;
 }) {
   const currentMode = MODES.find((m) => m.id === mode)!;
   const [chatError, setChatError] = useState<string | null>(null);
   const lastInputRef = useRef<string>("");
 
-  const { messages, input, handleInputChange, handleSubmit: chatSubmit, isLoading, setMessages, setInput } =
+  const { messages, input, handleInputChange, handleSubmit: chatSubmit, isLoading, setInput } =
     useChat({
       api: "/api/chat",
       initialMessages,
@@ -443,7 +712,6 @@ function ChatUI({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
-  // слушаем скролл — обновляем флаг «внизу»
   useEffect(() => {
     const el = mainRef.current;
     if (!el) return;
@@ -454,7 +722,6 @@ function ChatUI({
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  // автоскролл только если пользователь внизу
   useEffect(() => {
     if (!isAtBottom || !mainRef.current) return;
     mainRef.current.scrollTop = mainRef.current.scrollHeight;
@@ -490,92 +757,57 @@ function ChatUI({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100dvh",
+        height: "100%",
         background: "var(--bg)",
       }}
     >
-      {/* шапка — на всю ширину */}
-      <header
-        style={{
-          background: "var(--surface)",
-          borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-        }}
-      >
-        <div
+      {/* Мобильная шапка с бургером — только на мобиле */}
+      {isMobile && (
+        <header
           style={{
-            maxWidth: 820,
-            margin: "0 auto",
-            padding: "12px 20px",
+            background: "var(--surface)",
+            borderBottom: "1px solid var(--border)",
+            flexShrink: 0,
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             gap: 12,
+            padding: "0 16px",
+            height: 52,
           }}
         >
-          <Logo size={20} />
-
-          {/* переключатель режимов */}
-          <div
-            style={{
-              display: "flex",
-              background: "var(--bg)",
-              borderRadius: "var(--radius-btn)",
-              padding: 3,
-              gap: 2,
-              border: "1px solid var(--border)",
-            }}
-          >
-            {MODES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => onModeChange(m.id)}
-                disabled={isGenerating && mode !== m.id}
-                title={isGenerating && mode !== m.id ? "Подождите окончания ответа" : undefined}
-                style={{
-                  background: mode === m.id ? "var(--surface)" : "transparent",
-                  color: mode === m.id ? "var(--accent)" : "var(--muted)",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "5px 14px",
-                  fontSize: 13,
-                  fontWeight: mode === m.id ? 500 : 400,
-                  fontFamily: "var(--font-body)",
-                  cursor: isGenerating && mode !== m.id ? "not-allowed" : "pointer",
-                  transition: "all 0.15s",
-                  boxShadow: mode === m.id ? "var(--shadow-card)" : "none",
-                  whiteSpace: "nowrap",
-                  opacity: isGenerating && mode !== m.id ? 0.45 : 1,
-                }}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={onOpenSidebar}
             style={{
-              fontSize: 13,
-              color: "var(--muted)",
               background: "none",
               border: "none",
               cursor: "pointer",
-              fontFamily: "var(--font-body)",
-              padding: "4px 8px",
-              borderRadius: 6,
-              transition: "color 0.15s",
+              color: "var(--text)",
+              fontSize: 20,
+              lineHeight: 1,
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
               flexShrink: 0,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--muted)")}
+            aria-label="Открыть меню"
           >
-            Выйти
+            ☰
           </button>
-        </div>
-      </header>
+          <span
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontSize: 15,
+              fontWeight: 500,
+              color: "var(--text)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {currentMode.label}
+          </span>
+        </header>
+      )}
 
-      {/* лента — скролл, контент по центру */}
+      {/* Лента сообщений */}
       <main
         ref={mainRef}
         style={{
@@ -594,265 +826,181 @@ function ChatUI({
             gap: 18,
           }}
         >
-        {messages.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              color: "var(--muted)",
-              marginTop: 72,
-              maxWidth: 380,
-              margin: "72px auto 0",
-              fontFamily: "var(--font-body)",
-            }}
-          >
-            <p style={{ fontSize: 16, color: "var(--text)", marginBottom: 8, fontWeight: 500 }}>
-              Привет, {profile.name}!
-            </p>
-            <p style={{ fontSize: 15, lineHeight: 1.6 }}>{currentMode.empty}</p>
-          </div>
-        )}
-
-        {messages.map((m) =>
-          m.role === "user" ? (
-            /* пузырь пользователя */
-            <div key={m.id} style={{ display: "flex", justifyContent: "flex-end" }}>
-              <div
-                style={{
-                  maxWidth: "72%",
-                  background: "var(--green)",
-                  color: "#fff",
-                  borderRadius: "14px 4px 14px 14px",
-                  padding: "11px 16px",
-                  fontSize: 15,
-                  lineHeight: 1.55,
-                  whiteSpace: "pre-wrap",
-                  fontFamily: "var(--font-body)",
-                }}
-              >
-                {m.content}
-              </div>
+          {messages.length === 0 && (
+            <div
+              style={{
+                textAlign: "center",
+                color: "var(--muted)",
+                marginTop: 72,
+                maxWidth: 380,
+                margin: "72px auto 0",
+                fontFamily: "var(--font-body)",
+              }}
+            >
+              <p style={{ fontSize: 16, color: "var(--text)", marginBottom: 8, fontWeight: 500 }}>
+                Привет, {profile.name}!
+              </p>
+              <p style={{ fontSize: 15, lineHeight: 1.6 }}>{currentMode.empty}</p>
             </div>
-          ) : (
-            /* карточка UniPath */
-            <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-              {/* аватар */}
-              <div
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: "50%",
-                  background: "var(--tag-coral)",
-                  border: "1.5px solid var(--border)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: 2,
-                }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: "var(--accent)",
-                    display: "block",
-                  }}
-                />
-              </div>
+          )}
 
-              <div
-                style={{
-                  flex: 1,
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "4px 14px 14px 14px",
-                  padding: "14px 18px",
-                  fontSize: 15,
-                  lineHeight: 1.65,
-                  color: "var(--text)",
-                  fontFamily: "var(--font-body)",
-                  boxShadow: "var(--shadow-card)",
-                }}
-              >
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    table: ({ children }) => (
-                      <div style={{ overflowX: "auto", marginBottom: 10 }}>
-                        <table
-                          style={{
-                            borderCollapse: "collapse",
-                            width: "100%",
-                            fontSize: 14,
-                          }}
-                        >
-                          {children}
-                        </table>
-                      </div>
-                    ),
-                    thead: ({ children }) => (
-                      <thead style={{ background: "var(--bg)" }}>{children}</thead>
-                    ),
-                    th: ({ children }) => (
-                      <th
-                        style={{
-                          border: "1px solid var(--border)",
-                          padding: "8px 12px",
-                          textAlign: "left",
-                          fontWeight: 500,
-                          color: "var(--text)",
-                        }}
-                      >
-                        {children}
-                      </th>
-                    ),
-                    td: ({ children }) => (
-                      <td
-                        style={{
-                          border: "1px solid var(--border)",
-                          padding: "7px 12px",
-                          color: "var(--text)",
-                        }}
-                      >
-                        {children}
-                      </td>
-                    ),
-                    h1: ({ children }) => (
-                      <h1
-                        style={{
-                          fontFamily: "var(--font-heading)",
-                          fontSize: 18,
-                          fontWeight: 500,
-                          marginTop: 14,
-                          marginBottom: 6,
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        {children}
-                      </h1>
-                    ),
-                    h2: ({ children }) => (
-                      <h2
-                        style={{
-                          fontFamily: "var(--font-heading)",
-                          fontSize: 16,
-                          fontWeight: 500,
-                          marginTop: 12,
-                          marginBottom: 4,
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        {children}
-                      </h2>
-                    ),
-                    h3: ({ children }) => (
-                      <h3
-                        style={{
-                          fontSize: 15,
-                          fontWeight: 500,
-                          marginTop: 10,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {children}
-                      </h3>
-                    ),
-                    p: ({ children }) => (
-                      <p style={{ marginBottom: 10, marginTop: 0 }}>{children}</p>
-                    ),
-                    ul: ({ children }) => (
-                      <ul style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ol>
-                    ),
-                    li: ({ children }) => <li style={{ marginBottom: 4 }}>{children}</li>,
-                    strong: ({ children }) => (
-                      <strong style={{ fontWeight: 500, color: "var(--text)" }}>{children}</strong>
-                    ),
-                    hr: () => (
-                      <hr
-                        style={{
-                          border: "none",
-                          borderTop: "1px solid var(--border)",
-                          margin: "12px 0",
-                        }}
-                      />
-                    ),
-                    code: ({ children }) => (
-                      <code
-                        style={{
-                          background: "var(--tag-beige)",
-                          borderRadius: 5,
-                          padding: "1px 6px",
-                          fontSize: 13,
-                          fontFamily: "monospace",
-                        }}
-                      >
-                        {children}
-                      </code>
-                    ),
-                    a: ({ children, href }) => (
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: "var(--accent)", textDecoration: "underline" }}
-                      >
-                        {children}
-                      </a>
-                    ),
+          {messages.map((m) =>
+            m.role === "user" ? (
+              <div key={m.id} style={{ display: "flex", justifyContent: "flex-end" }}>
+                <div
+                  style={{
+                    maxWidth: "72%",
+                    background: "var(--green)",
+                    color: "#fff",
+                    borderRadius: "14px 4px 14px 14px",
+                    padding: "11px 16px",
+                    fontSize: 15,
+                    lineHeight: 1.55,
+                    whiteSpace: "pre-wrap",
+                    fontFamily: "var(--font-body)",
                   }}
                 >
                   {m.content}
-                </ReactMarkdown>
+                </div>
               </div>
-            </div>
-          )
-        )}
+            ) : (
+              <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    background: "var(--tag-coral)",
+                    border: "1.5px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "var(--accent)",
+                      display: "block",
+                    }}
+                  />
+                </div>
 
-        {isLoading && <ThinkingIndicator />}
+                <div
+                  style={{
+                    flex: 1,
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "4px 14px 14px 14px",
+                    padding: "14px 18px",
+                    fontSize: 15,
+                    lineHeight: 1.65,
+                    color: "var(--text)",
+                    fontFamily: "var(--font-body)",
+                    boxShadow: "var(--shadow-card)",
+                  }}
+                >
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      table: ({ children }) => (
+                        <div style={{ overflowX: "auto", marginBottom: 10 }}>
+                          <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 14 }}>
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      thead: ({ children }) => (
+                        <thead style={{ background: "var(--bg)" }}>{children}</thead>
+                      ),
+                      th: ({ children }) => (
+                        <th style={{ border: "1px solid var(--border)", padding: "8px 12px", textAlign: "left", fontWeight: 500, color: "var(--text)" }}>
+                          {children}
+                        </th>
+                      ),
+                      td: ({ children }) => (
+                        <td style={{ border: "1px solid var(--border)", padding: "7px 12px", color: "var(--text)" }}>
+                          {children}
+                        </td>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 500, marginTop: 14, marginBottom: 6, letterSpacing: "-0.02em" }}>{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 16, fontWeight: 500, marginTop: 12, marginBottom: 4, letterSpacing: "-0.02em" }}>{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 style={{ fontSize: 15, fontWeight: 500, marginTop: 10, marginBottom: 4 }}>{children}</h3>
+                      ),
+                      p: ({ children }) => <p style={{ marginBottom: 10, marginTop: 0 }}>{children}</p>,
+                      ul: ({ children }) => <ul style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ul>,
+                      ol: ({ children }) => <ol style={{ paddingLeft: 20, marginBottom: 10 }}>{children}</ol>,
+                      li: ({ children }) => <li style={{ marginBottom: 4 }}>{children}</li>,
+                      strong: ({ children }) => <strong style={{ fontWeight: 500, color: "var(--text)" }}>{children}</strong>,
+                      hr: () => <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "12px 0" }} />,
+                      code: ({ children }) => (
+                        <code style={{ background: "var(--tag-beige)", borderRadius: 5, padding: "1px 6px", fontSize: 13, fontFamily: "monospace" }}>
+                          {children}
+                        </code>
+                      ),
+                      a: ({ children, href }) => (
+                        <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", textDecoration: "underline" }}>
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {m.content}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )
+          )}
 
-        {chatError && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              background: "#FEF2F0",
-              border: "1px solid #F5C4BB",
-              borderRadius: 12,
-              padding: "12px 16px",
-              fontFamily: "var(--font-body)",
-              fontSize: 14,
-              color: "var(--text)",
-            }}
-          >
-            <span style={{ flex: 1 }}>⚠ {chatError}</span>
-            <button
-              onClick={handleRetry}
+          {isLoading && <ThinkingIndicator />}
+
+          {chatError && (
+            <div
               style={{
-                background: "var(--accent)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "6px 14px",
-                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: "#FEF2F0",
+                border: "1px solid #F5C4BB",
+                borderRadius: 12,
+                padding: "12px 16px",
                 fontFamily: "var(--font-body)",
-                cursor: "pointer",
-                flexShrink: 0,
+                fontSize: 14,
+                color: "var(--text)",
               }}
             >
-              Повторить
-            </button>
-          </div>
-        )}
+              <span style={{ flex: 1 }}>⚠ {chatError}</span>
+              <button
+                onClick={handleRetry}
+                style={{
+                  background: "var(--accent)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "6px 14px",
+                  fontSize: 13,
+                  fontFamily: "var(--font-body)",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                Повторить
+              </button>
+            </div>
+          )}
 
-        <div ref={bottomRef} />
+          <div ref={bottomRef} />
         </div>
 
-        {/* кнопка возврата вниз */}
         {!isAtBottom && (
           <button
             onClick={scrollToBottom}
@@ -881,7 +1029,7 @@ function ChatUI({
         )}
       </main>
 
-      {/* поле ввода — на всю ширину, safe-area для iPhone */}
+      {/* Поле ввода */}
       <div
         style={{
           background: "var(--surface)",
@@ -891,101 +1039,98 @@ function ChatUI({
         }}
       >
         <div style={{ maxWidth: 820, margin: "0 auto", padding: "12px 16px 16px" }}>
-        {limitReached ? (
-          <div
-            style={{
-              textAlign: "center",
-              fontSize: 15,
-              color: "var(--muted)",
-              fontFamily: "var(--font-body)",
-              padding: "8px 0",
-            }}
-          >
-            На сегодня всё. Возвращайся завтра — маршрут {declineName(profile.name, "genitive")} никуда не денется.{" "}
-            <a
-              href="mailto:support@example.com"
-              style={{ color: "var(--accent)", textDecoration: "underline" }}
-            >
-              Написать нам
-            </a>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
+          {limitReached ? (
             <div
               style={{
-                display: "flex",
-                gap: 10,
-                background: "var(--bg)",
-                border: "1.5px solid var(--border)",
-                borderRadius: "var(--radius-btn)",
-                padding: "6px 6px 6px 16px",
-                transition: "border-color 0.15s",
+                textAlign: "center",
+                fontSize: 15,
+                color: "var(--muted)",
+                fontFamily: "var(--font-body)",
+                padding: "8px 0",
               }}
-              onFocusCapture={(e) =>
-                ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--accent)")
-              }
-              onBlurCapture={(e) =>
-                ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")
-              }
             >
-              <input
-                value={input}
-                onChange={handleInputChange}
-                placeholder="Напиши вопрос или вставь текст…"
-                disabled={isLoading}
+              На сегодня всё. Возвращайся завтра — маршрут {declineName(profile.name, "genitive")} никуда не денется.{" "}
+              <a href="mailto:support@example.com" style={{ color: "var(--accent)", textDecoration: "underline" }}>
+                Написать нам
+              </a>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit}>
+              <div
                 style={{
-                  flex: 1,
-                  minWidth: 0,
-                  background: "none",
-                  border: "none",
-                  outline: "none",
-                  fontSize: 15,
-                  color: "var(--text)",
-                  fontFamily: "var(--font-body)",
-                  padding: "8px 8px 8px 0",
-                }}
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                style={{
-                  background: "var(--accent)",
-                  color: "#fff",
-                  border: "none",
+                  display: "flex",
+                  gap: 10,
+                  background: "var(--bg)",
+                  border: "1.5px solid var(--border)",
                   borderRadius: "var(--radius-btn)",
-                  padding: "8px 20px",
-                  fontSize: 14,
-                  fontWeight: 500,
+                  padding: "6px 6px 6px 16px",
+                  transition: "border-color 0.15s",
+                }}
+                onFocusCapture={(e) =>
+                  ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--accent)")
+                }
+                onBlurCapture={(e) =>
+                  ((e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)")
+                }
+              >
+                <input
+                  value={input}
+                  onChange={handleInputChange}
+                  placeholder="Напиши вопрос или вставь текст…"
+                  disabled={isLoading}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    background: "none",
+                    border: "none",
+                    outline: "none",
+                    fontSize: 15,
+                    color: "var(--text)",
+                    fontFamily: "var(--font-body)",
+                    padding: "8px 8px 8px 0",
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !input.trim()}
+                  style={{
+                    background: "var(--accent)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "var(--radius-btn)",
+                    padding: "8px 20px",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    fontFamily: "var(--font-body)",
+                    cursor: "pointer",
+                    opacity: isLoading || !input.trim() ? 0.4 : 1,
+                    transition: "opacity 0.15s, background 0.15s",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading && input.trim())
+                      e.currentTarget.style.background = "var(--accent-hover)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "var(--accent)";
+                  }}
+                >
+                  Отправить
+                </button>
+              </div>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--muted)",
+                  textAlign: "center",
+                  marginTop: 8,
                   fontFamily: "var(--font-body)",
-                  cursor: "pointer",
-                  opacity: isLoading || !input.trim() ? 0.4 : 1,
-                  transition: "opacity 0.15s, background 0.15s",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isLoading && input.trim())
-                    e.currentTarget.style.background = "var(--accent-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "var(--accent)";
                 }}
               >
-                Отправить
-              </button>
-            </div>
-            <p
-              style={{
-                fontSize: 12,
-                color: "var(--muted)",
-                textAlign: "center",
-                marginTop: 8,
-                fontFamily: "var(--font-body)",
-              }}
-            >
-              Осталось сообщений сегодня: {remaining}
-            </p>
-          </form>
-        )}
+                Осталось сообщений сегодня: {remaining}
+              </p>
+            </form>
+          )}
         </div>
       </div>
     </div>

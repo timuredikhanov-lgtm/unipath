@@ -23,8 +23,9 @@ const DAILY_LIMIT = 20;
 
 const prompts: Record<string, string> = {
   advisor: readFileSync(join(process.cwd(), "prompts/advisor.md"), "utf-8"),
-essay_editor: readFileSync(join(process.cwd(), "prompts/essay_editor.md"), "utf-8"),
+  essay_editor: readFileSync(join(process.cwd(), "prompts/essay_editor.md"), "utf-8"),
   athlete_mode: readFileSync(join(process.cwd(), "prompts/athlete_mode.md"), "utf-8"),
+  visa_mode: readFileSync(join(process.cwd(), "prompts/visa_mode.md"), "utf-8"),
   phd_block: readFileSync(join(process.cwd(), "prompts/phd_mode.md"), "utf-8"),
 };
 
