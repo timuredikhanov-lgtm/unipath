@@ -18,6 +18,11 @@
   --radius-btn: 10px;
   --font-heading: var(--font-heading), Georgia, serif;
   --font-body: var(--font-body), system-ui, sans-serif;
+
+  /* кривые easing — усиленные, не встроенные CSS */
+  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 * { box-sizing: border-box; }
@@ -43,7 +48,53 @@ h1, h2, h3, h4 {
   border-radius: 4px;
 }
 
+/* ── Анимация появления сообщения ──────────────────────────────────────────── */
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.msg-enter {
+  animation: msg-in 200ms var(--ease-out) both;
+}
+
+/* ── Анимация точек ────────────────────────────────────────────────────────── */
 @keyframes up-dots {
   0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
   40%           { opacity: 1;    transform: translateY(-3px); }
+}
+
+/* ── Кнопки: нажатие (масштаб) — только для устройств с мышью ─────────────── */
+@media (hover: hover) and (pointer: fine) {
+  .interactive:hover {
+    filter: brightness(0.96);
+  }
+}
+
+.interactive:active {
+  transform: scale(0.97);
+  transition: transform 120ms var(--ease-out) !important;
+}
+
+/* ── Кнопки режимов в сайдбаре ─────────────────────────────────────────────── */
+.mode-btn {
+  transition: background 150ms ease, color 150ms ease !important;
+}
+
+/* stagger при первом появлении */
+.mode-btn:nth-child(1) { animation-delay: 0ms; }
+.mode-btn:nth-child(2) { animation-delay: 40ms; }
+.mode-btn:nth-child(3) { animation-delay: 80ms; }
+.mode-btn:nth-child(4) { animation-delay: 120ms; }
+
+/* ── Доступность: пользователи с вестибулярными нарушениями ───────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .msg-enter {
+    animation: none;
+  }
+  /* убираем движение, оставляем opacity-переходы (они помогают понять UI) */
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

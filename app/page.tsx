@@ -324,6 +324,7 @@ function Sidebar({
     visa_mode: <Plane size={16} strokeWidth={1.5} />,
   };
 
+  // закрытие быстрее открытия — интерфейс должен реагировать мгновенно
   const sidebarStyle: React.CSSProperties = isMobile
     ? {
         position: "fixed",
@@ -333,7 +334,9 @@ function Sidebar({
         width: 260,
         zIndex: 100,
         transform: open ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.24s cubic-bezier(0.4,0,0.2,1)",
+        transition: open
+          ? "transform 250ms var(--ease-drawer)"
+          : "transform 200ms var(--ease-drawer)",
       }
     : {
         width: 220,
@@ -416,6 +419,7 @@ function Sidebar({
             return (
               <button
                 key={m.id}
+                className="mode-btn interactive"
                 onClick={() => {
                   onModeChange(m.id);
                   if (isMobile) onClose();
@@ -438,7 +442,6 @@ function Sidebar({
                   fontFamily: "var(--font-body)",
                   cursor: disabled ? "not-allowed" : "pointer",
                   opacity: disabled ? 0.45 : 1,
-                  transition: "background 0.13s, color 0.13s",
                   marginBottom: 2,
                 }}
                 onMouseEnter={(e) => {
@@ -854,7 +857,7 @@ function ChatUI({
 
           {messages.map((m) =>
             m.role === "user" ? (
-              <div key={m.id} style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div key={m.id} className="msg-enter" style={{ display: "flex", justifyContent: "flex-end" }}>
                 <div
                   style={{
                     maxWidth: "72%",
@@ -872,7 +875,7 @@ function ChatUI({
                 </div>
               </div>
             ) : (
-              <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <div key={m.id} className="msg-enter" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                 <div
                   style={{
                     width: 30,
@@ -1100,6 +1103,7 @@ function ChatUI({
                 />
                 <button
                   type="submit"
+                  className="interactive"
                   disabled={isLoading || !input.trim()}
                   style={{
                     background: "var(--accent)",
@@ -1112,7 +1116,7 @@ function ChatUI({
                     fontFamily: "var(--font-body)",
                     cursor: "pointer",
                     opacity: isLoading || !input.trim() ? 0.4 : 1,
-                    transition: "opacity 0.15s, background 0.15s",
+                    transition: "opacity 150ms var(--ease-out), background 150ms var(--ease-out)",
                     flexShrink: 0,
                   }}
                   onMouseEnter={(e) => {
