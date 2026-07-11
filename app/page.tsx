@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { declineName } from "@/lib/declineName";
+import { Compass, PenLine, Trophy, Plane } from "lucide-react";
 
 type Profile = { name: string; countries: string[]; level: string; year: string };
 type Mode = "advisor" | "essay_editor" | "athlete_mode" | "visa_mode";
@@ -316,11 +317,11 @@ function Sidebar({
   open: boolean;
   onClose: () => void;
 }) {
-  const modeIcons: Record<Mode, string> = {
-    advisor: "🎓",
-    essay_editor: "✍️",
-    athlete_mode: "⚡",
-    visa_mode: "🛂",
+  const modeIcons: Record<Mode, React.ReactNode> = {
+    advisor: <Compass size={16} strokeWidth={1.5} />,
+    essay_editor: <PenLine size={16} strokeWidth={1.5} />,
+    athlete_mode: <Trophy size={16} strokeWidth={1.5} />,
+    visa_mode: <Plane size={16} strokeWidth={1.5} />,
   };
 
   const sidebarStyle: React.CSSProperties = isMobile
@@ -449,7 +450,14 @@ function Sidebar({
                     e.currentTarget.style.background = "transparent";
                 }}
               >
-                <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    flexShrink: 0,
+                    color: isActive ? "var(--accent)" : "#8A8078",
+                  }}
+                >
                   {modeIcons[m.id]}
                 </span>
                 <span>{m.label}</span>
